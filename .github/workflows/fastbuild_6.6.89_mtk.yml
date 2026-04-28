@@ -575,6 +575,8 @@ jobs:
       - name: 构建内核
         run: |
           WORKDIR="$(pwd)"
+          export KBUILD_BUILD_USER=kleaf
+          export KBUILD_BUILD_HOST=build-host
           export PATH="/usr/lib/ccache:$PATH"
           export PATH="$WORKDIR/kernel_workspace/clang18/bin:$PATH"
           export PATH="$WORKDIR/kernel_workspace/build-tools/bin:$PATH"
