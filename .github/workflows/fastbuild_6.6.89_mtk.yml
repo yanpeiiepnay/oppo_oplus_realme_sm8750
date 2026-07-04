@@ -5,7 +5,7 @@ env:
   ANDROID_VERSION: 'android15'
   KERNEL_VERSION: '6.6'
   SUB_VERSION: '89_mtk'
-  KERNEL_NAME: 'android15-8-g29d86c5fc9dd-abogki428889875-4k'
+  KERNEL_NAME: 'android15-8-g7e1f3c083cc6-abogki467167594-4k'
   CCACHE_KEY: ccache-ecsv3-mtk_6.6.89
 
 on:
@@ -551,10 +551,31 @@ jobs:
           fi
           sed -i 's/${scm_version}//' ./common/scripts/setlocalversion
           echo "CONFIG_LOCALVERSION_AUTO=n" >> ./common/arch/arm64/configs/gki_defconfig
-           
+
+      # Custom kernel build time, without adding #1 SMP PREEMPT 自定义内核构建时间，不要加入#1 SMP PREEMPT
+      - name: Custom BUILD_TIME
+        shell: bash
+        run: |
+          WORKDIR="$(pwd)"
+          INPUT_TIME="Mon Dec  8 04:00:43 UTC 2025"
+          DATESTR="$INPUT_TIME"
+          echo "Using UTC time as fallback: $DATESTR"
+          cd kernel_workspace
+          for f in ./common/scripts/mkcompile_h ; do
+            if [ -f "$f" ]; then
+              echo "Patching mkcompile_h with BUILD_TIME=$DATESTR"
+              if grep -q 'UTS_VERSION=' "$f"; then
+                perl -pi -e "s{UTS_VERSION=\"\\\$\\(.*?\\)\"}{UTS_VERSION=\"#1 SMP PREEMPT $DATESTR\"}" "$f"
+              else
+                perl -0777 -pi -e "s{cat <<EOF}{cat <<EOF\n#undef UTS_VERSION\n#define UTS_VERSION \"#1 SMP PREEMPT $DATESTR\" } unless /UTS_VERSION/" "$f"
+              fi
+            fi
+          done
       - name: 构建内核
         run: |
           WORKDIR="$(pwd)"
+          export KBUILD_BUILD_USER=kleaf
+          export KBUILD_BUILD_HOST=build-host
           export PATH="/usr/lib/ccache:$PATH"
           export PATH="$WORKDIR/kernel_workspace/clang18/bin:$PATH"
           export PATH="$WORKDIR/kernel_workspace/build-tools/bin:$PATH"
